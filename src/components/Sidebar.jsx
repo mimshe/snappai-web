@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import ChatListItem from './ChatListItem';
 import { getAllChats } from '../utils/mockData';
+import { clearCredentials } from '../store/slices/authSlice';
 
 const Sidebar = ({ isOpen, onClose, chats }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
+
+  const handleLogout = () => {
+    dispatch(clearCredentials());
+    navigate('/login');
+    onClose();
+  };
 
   return (
     <>
@@ -70,6 +80,23 @@ const Sidebar = ({ isOpen, onClose, chats }) => {
                 <ChatListItem key={chat.id} chat={chat} />
               ))
             )}
+          </div>
+
+          {/* User Info & Logout */}
+          <div className="p-4 border-t border-gray-200">
+            {user && (
+              <div className="mb-3 text-sm text-gray-600">
+                <p className="font-medium text-gray-800">
+                  {user.name || user.cellphone || 'کاربر'}
+                </p>
+              </div>
+            )}
+            <button
+              onClick={handleLogout}
+              className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
+            >
+              خروج از حساب
+            </button>
           </div>
         </div>
       </div>

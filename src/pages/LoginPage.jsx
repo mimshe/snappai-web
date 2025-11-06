@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import OtpForm from '../components/OtpForm';
-import { setAuthToken } from '../utils/auth';
 import { sendOtp } from '../api/otp';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -41,13 +40,9 @@ const LoginPage = () => {
     }
   };
 
-  const handleOtpVerify = (token) => {
-    setAuthToken(token);
-    navigate('/chats');
-  };
-
   const handleBack = () => {
     setStep(1);
+    setError('');
   };
 
   return (
@@ -100,7 +95,6 @@ const LoginPage = () => {
         ) : (
           <OtpForm
             mobileNumber={mobileNumber}
-            onVerify={handleOtpVerify}
             onBack={handleBack}
           />
         )}

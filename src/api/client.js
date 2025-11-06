@@ -1,5 +1,6 @@
 // Axios client configuration
 import axios from 'axios';
+import { store } from '../store/store';
 
 const API_BASE_URL = 'http://127.0.0.1/api';
 
@@ -16,11 +17,12 @@ const apiClient = axios.create({
 // Request interceptor (optional - for adding auth tokens, etc.)
 apiClient.interceptors.request.use(
   (config) => {
-    // You can add auth token here if needed
-    // const token = getAuthToken();
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    // Get token from Redux store
+    const state = store.getState();
+    const token = state?.auth?.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {

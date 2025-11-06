@@ -1,12 +1,18 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import LoginPage from '../pages/LoginPage';
 import ChatListPage from '../pages/ChatListPage';
 import ChatPage from '../pages/ChatPage';
-import { isAuthenticated } from '../utils/auth';
 
 const PrivateRoute = ({ children }) => {
-  return isAuthenticated() ? children : <Navigate to="/login" replace />;
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  return !isAuthenticated ? children : <Navigate to="/chats" replace />;
 };
 
 const AppRoutes = () => {
@@ -15,7 +21,9 @@ const AppRoutes = () => {
       <Route
         path="/login"
         element={
-          isAuthenticated() ? <Navigate to="/chats" replace /> : <LoginPage />
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
         }
       />
       <Route
