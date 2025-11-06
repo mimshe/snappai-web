@@ -1,34 +1,46 @@
 import React from 'react';
 
-const ChatMessage = ({ message }) => {
-  const isUser = message.type === 'user';
+const ChatMessage = ({ message, index = 0, isFirstLoad = false }) => {
+  // Support both API format (is_llm) and old format (type)
+  // is_llm: true = AI message (right side), false = User message (left side)
+  const isAI = message.is_llm === true || message.type === 'ai';
+  const messageText = message.message || message.content || '';
+  const timestamp = message.created_at || message.timestamp;
 
   return (
     <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
+      className={`flex ${isAI ? 'justify-end' : 'justify-start'} mb-4 ${
+        isFirstLoad ? 'animate-slide-up' : ''
+      }`}
+      style={{
+        animationDelay: isFirstLoad ? `${index * 50}ms` : undefined,
+      }}
     >
       <div
         className={`max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 ${
-          isUser
-            ? 'bg-primary text-white rounded-tr-sm'
-            : 'bg-gray-100 text-gray-800 rounded-tl-sm'
+          isAI
+            ? 'bg-gray-100 text-gray-800 rounded-tl-sm'
+            : 'bg-primary text-white rounded-tr-sm'
         }`}
       >
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
-          {message.content}
+          {messageText}
         </p>
-        {message.timestamp && (
-          <p
-            className={`text-xs mt-1 ${
-              isUser ? 'text-white/70' : 'text-gray-500'
-            }`}
-          >
-            {new Date(message.timestamp).toLocaleTimeString('fa-IR', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </p>
-        )}
+        <p
+          className={`text-xs mt-1  text-end ${
+            isAI ? 'text-gray-500' : 'text-white/70'
+          }`}
+        >
+          {timestamp
+            ? new Date(timestamp).toLocaleTimeString('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : new Date().toLocaleTimeString('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+        </p>
       </div>
     </div>
   );

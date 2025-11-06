@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ChatListItem from './ChatListItem';
-import { getAllChats } from '../utils/mockData';
+import LoadingSpinner from './LoadingSpinner';
 import { clearCredentials } from '../store/slices/authSlice';
 import ConfirmModal from './ConfirmModal';
 
-const Sidebar = ({ isOpen, onClose, chats }) => {
+const Sidebar = ({ isOpen, onClose, chats, isLoading, isLoadingMore, hasMore, observerTarget, onLoadMore, activeChatId }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -26,6 +27,16 @@ const Sidebar = ({ isOpen, onClose, chats }) => {
   const handleLogoutCancel = () => {
     setShowLogoutModal(false);
   };
+
+  useEffect(() => {
+    if (!isLoading && chats.length > 0 && isFirstLoad) {
+      // After first load completes, reset isFirstLoad after animation
+      const timer = setTimeout(() => {
+        setIsFirstLoad(false);
+      }, Math.min(chats.length * 50 + 400, 2000)); // Wait for all animations to complete (max 2s)
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, chats.length, isFirstLoad]);
 
   return (
     <>
@@ -45,11 +56,11 @@ const Sidebar = ({ isOpen, onClose, chats }) => {
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h1 className="text-xl font-bold text-primary">SnappFood AI</h1>
+          <div className="p-4 border-b border-gray-200 flex items-center justify-center relative">
+            <h1 className="text-xl font-bold text-primary text-center" style={{fontFamily:"tahoma"}}>Snapp! Food AI</h1>
             <button
               onClick={onClose}
-              className="lg:hidden text-gray-500 hover:text-gray-700"
+              className="lg:hidden absolute left-4 text-gray-500 hover:text-gray-700"
             >
               <svg
                 className="w-6 h-6"
@@ -82,18 +93,42 @@ const Sidebar = ({ isOpen, onClose, chats }) => {
 
           {/* Chat List */}
           <div className="flex-1 overflow-y-auto">
-            {chats.length === 0 ? (
+            {isLoading ? (
+              <div className="p-4 text-center">
+                <LoadingSpinner size="sm" color="primary" />
+                <p className="mt-2 text-sm text-gray-500">در حال دریافت...</p>
+              </div>
+            ) : chats.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 <p>هنوز سفارشی ثبت نشده است</p>
               </div>
             ) : (
-              chats.map((chat) => (
-                <ChatListItem key={chat.id} chat={chat} />
-              ))
+              <>
+                {chats.map((chat, index) => (
+                  <ChatListItem
+                    key={chat.id}
+                    chat={chat}
+                    index={index}
+                    isFirstLoad={isFirstLoad}
+                    isActive={activeChatId && chat.id.toString() === activeChatId.toString()}
+                  />
+                ))}
+                {/* Infinite scroll trigger */}
+                {observerTarget && (
+                  <div ref={observerTarget} className="h-10 flex items-center justify-center">
+                    {isLoadingMore && (
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <LoadingSpinner size="sm" color="gray" />
+                        <span className="text-xs">در حال بارگذاری...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* User Info & Logout */}
+          {/* User Info & Settings */}
           <div className="p-4 border-t border-gray-200">
             {user && (
               <div className="mb-3 text-sm text-gray-600">
@@ -102,6 +137,15 @@ const Sidebar = ({ isOpen, onClose, chats }) => {
                 </p>
               </div>
             )}
+            <button
+              onClick={() => {
+                navigate('/settings');
+                onClose();
+              }}
+              className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm mb-2"
+            >
+              تنظیمات
+            </button>
             <button
               onClick={handleLogoutClick}
               className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"

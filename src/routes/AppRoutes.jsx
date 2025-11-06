@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux';
 import LoginPage from '../pages/LoginPage';
 import ChatListPage from '../pages/ChatListPage';
 import ChatPage from '../pages/ChatPage';
+import SettingsPage from '../pages/SettingsPage';
+import NotFoundPage from '../pages/NotFoundPage';
 
 const PrivateRoute = ({ children }) => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -42,7 +44,16 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/settings"
+        element={
+          <PrivateRoute>
+            <SettingsPage />
+          </PrivateRoute>
+        }
+      />
       <Route path="/" element={<Navigate to="/chats" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 };
