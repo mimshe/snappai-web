@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 const OtpForm = ({ mobileNumber, onVerify, onBack }) => {
   const [otp, setOtp] = useState('');
@@ -36,6 +37,7 @@ const OtpForm = ({ mobileNumber, onVerify, onBack }) => {
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-center text-lg tracking-widest"
           dir="ltr"
           required
+          disabled={isLoading}
         />
         <p className="mt-2 text-sm text-gray-500 text-center">
           کد به شماره {mobileNumber} ارسال شد
@@ -46,16 +48,18 @@ const OtpForm = ({ mobileNumber, onVerify, onBack }) => {
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+          disabled={isLoading}
+          className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
         >
           بازگشت
         </button>
         <button
           type="submit"
           disabled={isLoading || otp.length !== 6}
-          className="flex-1 px-4 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 px-4 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px]"
         >
-          {isLoading ? 'در حال تایید...' : 'تایید'}
+          {isLoading && <LoadingSpinner size="sm" color="white" />}
+          <span>{isLoading ? 'در حال تایید...' : 'تایید'}</span>
         </button>
       </div>
     </form>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 const ChatInput = ({ onSendMessage, disabled }) => {
   const [message, setMessage] = useState('');
@@ -25,9 +26,10 @@ const ChatInput = ({ onSendMessage, disabled }) => {
         <button
           type="submit"
           disabled={!message.trim() || disabled}
-          className="px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px]"
         >
-          ارسال
+          {disabled && <LoadingSpinner size="sm" color="white" />}
+          <span>{disabled ? 'در حال ارسال...' : 'ارسال'}</span>
         </button>
       </form>
     </div>
