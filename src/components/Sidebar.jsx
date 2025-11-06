@@ -4,16 +4,27 @@ import { useDispatch, useSelector } from 'react-redux';
 import ChatListItem from './ChatListItem';
 import { getAllChats } from '../utils/mockData';
 import { clearCredentials } from '../store/slices/authSlice';
+import ConfirmModal from './ConfirmModal';
 
 const Sidebar = ({ isOpen, onClose, chats }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutConfirm = () => {
     dispatch(clearCredentials());
     navigate('/login');
     onClose();
+    setShowLogoutModal(false);
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutModal(false);
   };
 
   return (
@@ -92,7 +103,7 @@ const Sidebar = ({ isOpen, onClose, chats }) => {
               </div>
             )}
             <button
-              onClick={handleLogout}
+              onClick={handleLogoutClick}
               className="w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
             >
               خروج از حساب
@@ -100,6 +111,17 @@ const Sidebar = ({ isOpen, onClose, chats }) => {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        onClose={handleLogoutCancel}
+        onConfirm={handleLogoutConfirm}
+        title="خروج از حساب"
+        message="آیا مطمئن هستید که می‌خواهید از حساب کاربری خود خارج شوید؟"
+        confirmText="بله، خارج شو"
+        cancelText="لغو"
+      />
     </>
   );
 };
