@@ -67,3 +67,62 @@ export const getChats = async (page = 1, perPage = 15) => {
   }
 };
 
+/**
+ * Create a new chat (start new order)
+ * @param {string} message - Initial message for the new chat
+ * @returns {Promise<{success: boolean, message?: string, action?: string, errors?: object, error?: string}>}
+ */
+export const createChat = async (message) => {
+  try {
+    const response = await apiClient.post('/chats', {
+      message,
+    });
+
+    const data = response.data || {};
+
+    return {
+      success: true,
+      message: data.message || '',
+      action: data.action || '',
+    };
+  } catch (error) {
+    if (error.response) {
+      const status = error.response.status;
+      const data = error.response.data || {};
+
+      if (status === 401) {
+        return {
+          success: false,
+          error: 'unauthorized',
+          message: 'دسترسی غیرمجاز',
+        };
+      }
+
+      let validationMessage = data.message || 'خطا در ایجاد سفارش';
+      const validationErrors = data.error;
+      if (validationErrors?.message && Array.isArray(validationErrors.message)) {
+        validationMessage = validationErrors.message.join('، ');
+      }
+
+      return {
+        success: false,
+        message: validationMessage,
+        errors: validationErrors,
+      };
+    } else if (error.request) {
+      return {
+        success: false,
+        message: 'خطا در اتصال به سرور',
+        error: 'سرور پاسخ نمی‌دهد',
+      };
+    }
+
+    return {
+      success: false,
+      message: 'خطای غیرمنتظره رخ داد',
+      error: error.message || 'خطای نامشخص',
+    };
+  }
+};
+
+

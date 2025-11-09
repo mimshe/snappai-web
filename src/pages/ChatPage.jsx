@@ -8,7 +8,7 @@ import Sidebar from '../components/Sidebar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmModal from '../components/ConfirmModal';
 import { getChatMessages, sendChatMessage } from '../api/messages';
-import { getChats } from '../api/chats';
+import { getChats, createChat } from '../api/chats';
 import { clearCredentials } from '../store/slices/authSlice';
 
 const ChatPage = () => {
@@ -27,7 +27,7 @@ const ChatPage = () => {
   const [chatTitle, setChatTitle] = useState('');
   const [chats, setChats] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [isFirstLoad, setIsFirstLoad] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesTopRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -201,17 +201,51 @@ const ChatPage = () => {
   };
 
   const handleSendMessage = async (content) => {
-    if (isNewChat) {
-      // For new chats, just simulate (no API call yet)
-      const userMessage = {
-        id: Date.now().toString(),
-        is_llm: false,
-        message: content,
-        created_at: new Date().toISOString(),
-      };
+    const tempId = Date.now().toString();
+    const userMessage = {
+      id: tempId,
+      is_llm: false,
+      message: content,
+      created_at: new Date().toISOString(),
+    };
 
-      setMessages((prev) => [...prev, userMessage]);
-      simulateAIResponse(content);
+    setMessages((prev) => [...prev, userMessage]);
+
+    if (isNewChat) {
+      setIsSending(true);
+      try {
+        const result = await createChat(content);
+
+        if (result.success) {
+          if (result.message) {
+            const aiMessage = {
+              id: `ai-${Date.now()}`,
+              is_llm: true,
+              message: result.message,
+              created_at: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, aiMessage]);
+          }
+
+          if (result.action) {
+            const actionMessage = {
+              id: `action-${Date.now() + 1}`,
+              is_llm: true,
+              message: `اقدام پیشنهادی: ${result.action}`,
+              created_at: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, actionMessage]);
+          }
+        } else {
+          setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+          toast.error(result.message || 'خطا در ایجاد سفارش');
+        }
+      } catch (error) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+        toast.error('مشکلی رخ داده است');
+      } finally {
+        setIsSending(false);
+      }
       return;
     }
 
@@ -224,17 +258,19 @@ const ChatPage = () => {
       if (result.success && result.data) {
         // Add the sent message to the list
         const sentMessage = {
-          id: result.data.id || Date.now().toString(),
+          id: result.data.id || tempId,
           is_llm: false,
           message: result.data.message || content,
           created_at: result.data.created_at || new Date().toISOString(),
         };
 
-        setMessages((prev) => [...prev, sentMessage]);
-        // Simulate AI response
-        simulateAIResponse(content);
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === tempId ? sentMessage : msg))
+        );
+
+        // Refresh messages from server to stay in sync
+        await fetchMessages(1, false);
       } else {
-        // Handle 401 Unauthorized
         if (result.error === 'unauthorized') {
           dispatch(clearCredentials());
           navigate('/login');
@@ -242,9 +278,11 @@ const ChatPage = () => {
           return;
         }
 
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
         toast.error(result.message || 'خطا در ارسال پیام');
       }
     } catch (error) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
       toast.error('مشکلی رخ داده است');
     } finally {
       setIsSending(false);

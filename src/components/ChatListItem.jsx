@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isHtmlContent, sanitizeHtml, stripHtml } from '../utils/messageUtils';
 
 const ChatListItem = ({ chat, index = 0, isFirstLoad = false, isActive = false }) => {
   const navigate = useNavigate();
@@ -31,7 +32,16 @@ const ChatListItem = ({ chat, index = 0, isFirstLoad = false, isActive = false }
     }
   };
 
-  const lastMessage = chat.last_message?.message || 'پیامی وجود ندارد';
+  const rawLastMessage = chat.last_message?.message || '';
+  const lastMessage = useMemo(() => {
+    if (!rawLastMessage) return 'پیامی وجود ندارد';
+    if (isHtmlContent(rawLastMessage)) {
+      const sanitized = sanitizeHtml(rawLastMessage);
+      const text = stripHtml(sanitized);
+      return text.trim().length ? text : 'پیامی وجود ندارد';
+    }
+    return rawLastMessage.trim().length ? rawLastMessage : 'پیامی وجود ندارد';
+  }, [rawLastMessage]);
   const title = chat.title || `چت ${chat.id}`;
   const date = chat.last_message?.created_at || chat.updated_at || chat.created_at;
 
