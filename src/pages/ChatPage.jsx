@@ -7,6 +7,7 @@ import ChatInput from '../components/ChatInput';
 import Sidebar from '../components/Sidebar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmModal from '../components/ConfirmModal';
+import AddressButtons from '../components/AddressButtons';
 import { getChatMessages, sendChatMessage } from '../api/messages';
 import { getChats, createChat } from '../api/chats';
 import { clearCredentials } from '../store/slices/authSlice';
@@ -28,9 +29,11 @@ const ChatPage = () => {
   const [chats, setChats] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isFirstLoad, setIsFirstLoad] = useState(false);
+  const [addresses, setAddresses] = useState(null);
   const messagesEndRef = useRef(null);
   const messagesTopRef = useRef(null);
   const scrollPositionRef = useRef(0);
+  const prevIdRef = useRef(id);
 
   const isNewChat = id === 'new';
 
@@ -121,12 +124,48 @@ const ChatPage = () => {
 
   // Initial load
   useEffect(() => {
+    // Only clear addresses when switching between existing chats (not when coming from new chat)
+    const wasNewChat = prevIdRef.current === 'new';
+    const isNowExistingChat = !isNewChat;
+    
     if (!isNewChat) {
       fetchMessages(1, false);
+      // Clear addresses only if we're switching between two existing chats
+      if (wasNewChat && isNowExistingChat) {
+        // Don't clear - we're navigating from new chat, addresses should persist
+      } else if (!wasNewChat && isNowExistingChat) {
+        // Switching between existing chats - clear addresses
+        setAddresses(null);
+      }
     } else {
       setIsLoading(false);
+      // Clear addresses when going to new chat
+      if (!wasNewChat) {
+        setAddresses(null);
+      }
     }
+    
+    prevIdRef.current = id;
   }, [id, isNewChat, fetchMessages]);
+
+  // Check last message for show_addresses action whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.action === 'show_addresses' && lastMessage.payload) {
+        // Extract addresses from payload
+        const addressList = Array.isArray(lastMessage.payload)
+          ? lastMessage.payload
+          : (lastMessage.payload.addresses || lastMessage.payload.address || []);
+        setAddresses(addressList.length > 0 ? addressList : null);
+      } else {
+        // Clear addresses if last message doesn't have show_addresses action
+        setAddresses(null);
+      }
+    } else {
+      setAddresses(null);
+    }
+  }, [messages]);
 
   // Scroll to bottom when new messages arrive (not when loading older messages)
   useEffect(() => {
@@ -174,31 +213,7 @@ const ChatPage = () => {
     };
   }, [hasMore, isLoadingMore, isLoading, currentPage, isNewChat, fetchMessages]);
 
-  const simulateAIResponse = (userMessage) => {
-    setIsTyping(true);
 
-    // Simulate AI thinking time
-    setTimeout(() => {
-      const responses = [
-        'متشکرم! آیا چیز دیگری می‌خواهید به سفارش اضافه کنید؟',
-        'عالی! سفارش شما در حال ثبت است. آیا آدرس تحویل را تایید می‌کنید؟',
-        'بله، حتما. آیا سس یا نوشیدنی اضافی می‌خواهید؟',
-        'سفارش شما ثبت شد. زمان تقریبی تحویل: ۳۰ دقیقه',
-      ];
-
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-      const aiMessage = {
-        id: Date.now().toString(),
-        is_llm: true,
-        message: randomResponse,
-        created_at: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-      setIsTyping(false);
-    }, 1500);
-  };
 
   const handleSendMessage = async (content) => {
     const tempId = Date.now().toString();
@@ -223,18 +238,28 @@ const ChatPage = () => {
               is_llm: true,
               message: result.message,
               created_at: new Date().toISOString(),
+              action: result.action || null,
+              payload: result.payload || null,
             };
             setMessages((prev) => [...prev, aiMessage]);
           }
-
-          if (result.action) {
-            const actionMessage = {
-              id: `action-${Date.now() + 1}`,
-              is_llm: true,
-              message: `اقدام پیشنهادی: ${result.action}`,
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, actionMessage]);
+          
+          // Handle show_addresses action - only if last message has it
+          if (result.action === 'show_addresses' && result.payload) {
+            // Extract addresses from payload
+            const addressList = Array.isArray(result.payload) 
+              ? result.payload 
+              : (result.payload.addresses || result.payload.address || []);
+            setAddresses(addressList.length > 0 ? addressList : null);
+          } else {
+            setAddresses(null);
+          }
+          
+          if (result.chatId) {
+            if (result.chatTitle) {
+              setChatTitle(result.chatTitle);
+            }
+            navigate(`/chat/${result.chatId}`);
           }
         } else {
           setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
@@ -269,6 +294,7 @@ const ChatPage = () => {
         );
 
         // Refresh messages from server to stay in sync
+        // Addresses will be set automatically by useEffect that checks last message
         await fetchMessages(1, false);
       } else {
         if (result.error === 'unauthorized') {
@@ -287,6 +313,11 @@ const ChatPage = () => {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleAddressSelect = async (addressName) => {
+    // Send the address name as a message (addresses will be cleared in handleSendMessage)
+    await handleSendMessage(addressName);
   };
 
   const handleDeleteChat = () => {
@@ -428,6 +459,14 @@ const ChatPage = () => {
                   isFirstLoad={isFirstLoad}
                 />
               ))}
+
+              {/* Address buttons - shown when action is show_addresses */}
+              {addresses && addresses.length > 0 && (
+                <AddressButtons 
+                  addresses={addresses} 
+                  onSelectAddress={handleAddressSelect}
+                />
+              )}
 
               {isTyping && (
                 <div className="flex justify-start mb-4">

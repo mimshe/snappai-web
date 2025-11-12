@@ -84,6 +84,10 @@ export const createChat = async (message) => {
       success: true,
       message: data.message || '',
       action: data.action || '',
+      payload: data.payload || null,
+      chatId: data.chat_id || data.id || (data.chat ? data.chat.id : null) || null,
+      chatTitle: data.chat_title || (data.chat ? data.chat.title : '') || '',
+      chat: data.chat || null,
     };
   } catch (error) {
     if (error.response) {

@@ -87,6 +87,8 @@ export const sendChatMessage = async (chatId, message) => {
       success: true,
       data: data.data || {},
       message: data.message || 'پیام با موفقیت ارسال شد',
+      action: data.action || '',
+      payload: data.payload || null,
     };
   } catch (error) {
     // Handle axios errors
