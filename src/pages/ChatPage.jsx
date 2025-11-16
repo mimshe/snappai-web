@@ -139,7 +139,8 @@ const ChatPage = () => {
       }
     } else {
       setIsLoading(false);
-      // Clear addresses when going to new chat
+      // Clear messages and addresses when going to new chat
+      setMessages([]);
       if (!wasNewChat) {
         setAddresses(null);
       }
@@ -316,8 +317,9 @@ const ChatPage = () => {
   };
 
   const handleAddressSelect = async (addressName) => {
-    // Send the address name as a message (addresses will be cleared in handleSendMessage)
-    await handleSendMessage(addressName);
+    // Add "عنوان آدرس: " prefix before sending the address name as a message
+    const messageToSend = addressName ? `عنوان آدرس: ${addressName}` : 'عنوان آدرس: ';
+    await handleSendMessage(messageToSend);
   };
 
   const handleDeleteChat = () => {
